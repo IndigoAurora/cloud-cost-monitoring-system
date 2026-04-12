@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud Cost Monitoring System | Global Cost Intelligence</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-body: #0a0f1c;
+            --bg-sidebar: #111827;
+            --bg-surface: #1e293b;
+            --bg-card: rgba(30, 41, 59, 0.7);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-primary: #38bdf8;
+            --accent-success: #10b981;
+            --accent-warning: #f59e0b;
+            --accent-danger: #ef4444;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --sidebar-width: 260px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background-color: var(--bg-body); color: var(--text-primary); min-height: 100vh; display: flex; overflow-x: hidden; }
+
+        aside { width: var(--sidebar-width); background: var(--bg-sidebar); border-right: 1px solid var(--border-color); height: 100vh; position: fixed; display: flex; flex-direction: column; padding: 2rem 1.25rem; z-index: 100; }
+        .logo { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 3rem; }
+        .logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--accent-primary), #1d4ed8); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; }
+        .logo h2 { font-family: 'Outfit', sans-serif; font-size: 1.25rem; font-weight: 700; color: var(--text-primary); }
+
+        .nav-link { display: flex; align-items: center; gap: 0.75rem; padding: 0.875rem 1rem; color: var(--text-secondary); text-decoration: none; border-radius: 12px; margin-bottom: 0.5rem; transition: 0.2s; cursor: pointer; font-weight: 500; }
+        .nav-link:hover { color: var(--text-primary); background: rgba(255, 255, 255, 0.05); }
+        .nav-link.active { color: var(--accent-primary); background: rgba(56, 189, 248, 0.1); font-weight: 600; }
+
+        main { margin-left: var(--sidebar-width); flex: 1; padding: 2rem 3rem; max-width: 1600px; }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; }
+        .header-title h1 { font-family: 'Outfit', sans-serif; font-size: 1.875rem; font-weight: 700; }
+
+        .view-section { display: none; margin-bottom: 2rem; }
+        .view-section.active { display: block; animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 2.5rem; }
+        .stat-card { background: var(--bg-card); backdrop-filter: blur(12px); border: 1px solid var(--border-color); border-radius: 16px; padding: 1.5rem; transition: 0.3s; }
+        .stat-card:hover { transform: translateY(-4px); border-color: var(--accent-primary); }
+        .stat-value { font-size: 1.75rem; font-weight: 700; font-family: 'Outfit', sans-serif; margin: 0.5rem 0; }
+        .trend { display: flex; align-items: center; gap: 0.25rem; font-size: 0.8rem; font-weight: 600; }
+        .trend.up { color: var(--accent-danger); }
+        .trend.down { color: var(--accent-success); }
+
+        .main-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; margin-bottom: 2rem; }
+        .panel { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 20px; padding: 1.5rem; margin-bottom: 2rem; backdrop-filter: blur(10px); }
+        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .panel-title { font-size: 1.125rem; font-weight: 600; font-family: 'Outfit', sans-serif; }
+
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 1rem; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border-color); }
+        td { padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color); font-size: 0.9375rem; color: var(--text-secondary); }
+
+        .form-container { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 20px; padding: 2rem; max-width: 600px; margin-bottom: 2.5rem; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3); }
+        .form-group { margin-bottom: 1.5rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.875rem; font-weight: 500; }
+        .form-control { width: 100%; background: rgba(15, 23, 42, 0.5); border: 1px solid var(--border-color); border-radius: 10px; padding: 0.75rem 1rem; color: var(--text-primary); font-size: 0.9375rem; transition: 0.2s; }
+        .form-control:focus { outline: none; border-color: var(--accent-primary); background: rgba(15, 23, 42, 0.8); }
+
+        .btn-refresh { background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); color: var(--text-primary); padding: 0.6rem 1.25rem; border-radius: 10px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-weight: 600; transition: 0.2s; }
+        .btn-refresh:hover { background: var(--accent-primary); color: white; border-color: var(--accent-primary); }
+        
+        .status-chip { padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+        .chip-danger { background: rgba(239, 68, 68, 0.1); color: var(--accent-danger); }
+        
+        #syncText { font-size: 0.75rem; color: var(--text-muted); margin-left: 1rem; }
+        .spinning { animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <aside>
+        <div class="logo">
+            <div class="logo-icon"><i data-lucide="layers"></i></div>
+            <h2>Cloud Cost Monitoring System</h2>
+        </div>
+        <nav>
+            <a onclick="showView('dashboardView')" class="nav-link active" id="nav-dashboard"><i data-lucide="layout-dashboard"></i>Dashboard</a>
+            <a onclick="showView('teamsView')" class="nav-link" id="nav-teams"><i data-lucide="users"></i>Teams</a>
+            <a onclick="showView('billingView')" class="nav-link" id="nav-billing"><i data-lucide="credit-card"></i>Billing</a>
+            <a onclick="showView('recordsView')" class="nav-link" id="nav-records"><i data-lucide="list"></i>Records</a>
+            <a onclick="showView('analyticsView')" class="nav-link" id="nav-analytics"><i data-lucide="pie-chart"></i>Analytics</a>
+        </nav>
+    </aside>
+
+    <main>
+        <header>
+            <div class="header-title">
+                <h1 id="viewTitle">Cloud Cost Monitoring System</h1>
+                <p id="viewSubtitle" style="color: var(--text-muted); font-size: 0.875rem;">Data Wizards — Akshay Goel & Anshul Kumar, Section 4B</p>
+            </div>
+            <div class="header-actions">
+                <div id="monthSelectorContainer">
+                    <select id="monthSelector" onchange="refreshData()" style="background: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border-color); padding: 0.6rem 1rem; border-radius: 10px; cursor: pointer; font-size: 0.875rem;">
+                        <option value="all">Global Period (All Time)</option>
+                    </select>
+                </div>
+                <button class="btn-refresh" onclick="refreshData()">
+                    <i data-lucide="refresh-cw" id="refreshIcon"></i> Sync Now
+                </button>
+                <span id="syncText">Status: Stable</span>
+            </div>
+        </header>
+
+        <!-- DASHBOARD VIEW -->
+        <section id="dashboardView" class="view-section active">
+            <div class="stats-grid" id="companiesGrid"></div>
+            <div class="main-grid">
+                <div class="panel">
+                    <div class="panel-header"><h2 class="panel-title">Cost Distribution</h2></div>
+                    <div style="height: 320px;"><canvas id="costChart"></canvas></div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2 class="panel-title">Intelligence Alerts</h2>
+                        <i data-lucide="zap" style="color: var(--accent-warning);"></i>
+                    </div>
+                    <div id="alertsList" style="display: flex; flex-direction: column; gap: 0.75rem;"></div>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-header"><h2 class="panel-title">Resource Governance</h2></div>
+                <div class="table-container">
+                    <table class="governance-table">
+                        <thead>
+                            <tr>
+                                <th>Entity / Team</th>
+                                <th>Budget</th>
+                                <th>Spend</th>
+                                <th>Drift</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="teamsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TEAMS VIEW -->
+        <section id="teamsView" class="view-section">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                <div class="form-container" style="max-width: 100%;">
+                    <h3 style="margin-bottom: 1.5rem; color: var(--accent-primary);">Register New Company</h3>
+                    <form id="addCompanyForm">
+                        <div class="form-group"><label>Company Name</label><input type="text" id="formCompName" class="form-control" required></div>
+                        <div class="form-group"><label>Industry</label><input type="text" id="formCompIndustry" class="form-control" required></div>
+                        <div class="form-group"><label>Contact Email</label><input type="email" id="formCompEmail" class="form-control" required></div>
+                        <button type="submit" class="btn-refresh" style="width: 100%; justify-content: center;">Add Portfolio Entity</button>
+                    </form>
+                </div>
+                <div class="form-container" style="max-width: 100%;">
+                    <h3 style="margin-bottom: 1.5rem; color: var(--accent-primary);">Register New Team</h3>
+                    <form id="addTeamForm">
+                        <div class="form-group"><label>Portfolio Company</label><select id="formTeamCompany" class="form-control" required></select></div>
+                        <div class="form-group"><label>Team Name</label><input type="text" id="formTeamName" class="form-control" placeholder="e.g. Core Infrastructure" required></div>
+                        <div class="form-group"><label>Department</label><input type="text" id="formTeamDept" class="form-control" placeholder="e.g. Engineering" required></div>
+                        <div class="form-group"><label>Monthly Threshold ($)</label><input type="number" id="formTeamBudget" class="form-control" placeholder="e.g. 10000" required></div>
+                        <button type="submit" class="btn-refresh" style="width: 100%; justify-content: center;">Provision Team</button>
+                    </form>
+                </div>
+            </div>
+            <div class="panel">
+                <h2 class="panel-title">Team Inventory</h2>
+                <div class="table-container">
+                    <table class="governance-table">
+                        <thead>
+                            <tr><th>Team</th><th>Department</th><th>Company</th><th>Allocation</th></tr>
+                        </thead>
+                        <tbody id="allTeamsTable"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- BILLING VIEW -->
+        <section id="billingView" class="view-section">
+            <div class="form-container">
+                <h3 style="margin-bottom: 1.5rem; color: var(--accent-primary);">Log Expense Record</h3>
+                <form id="addBillingForm">
+                    <div class="form-group"><label>Company</label><select id="formBillCompany" class="form-control" onchange="loadTeamsForForm(this.value)" required></select></div>
+                    <div class="form-group"><label>Team</label><select id="formBillTeam" class="form-control" required></select></div>
+                    <div class="form-group"><label>Service Endpoint</label><select id="formBillService" class="form-control" required></select></div>
+                    <div class="form-group"><label>Amount ($)</label><input type="number" step="0.01" id="formBillAmount" class="form-control" required></div>
+                    <div class="form-group"><label>Usage Hours</label><input type="number" id="formBillHours" class="form-control" required></div>
+                    <div class="form-group"><label>Billing Month</label><input type="date" id="formBillMonth" class="form-control" required></div>
+                    <button type="submit" class="btn-refresh" style="width: 100%; justify-content: center;">Commit Record</button>
+                </form>
+                <p id="billingSuccessMsg" style="display:none; color:var(--accent-success); margin-top:1rem; font-weight:600; text-align:center;">✓ Record Committed Successfully</p>
+            </div>
+        </section>
+
+        <!-- RECORDS VIEW -->
+        <section id="recordsView" class="view-section">
+            <div class="panel">
+                <div class="panel-header"><h2 class="panel-title">Cost Ledger Management</h2></div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Company</th>
+                                <th>Team</th>
+                                <th>Service</th>
+                                <th>Amount</th>
+                                <th>Hours</th>
+                                <th>Month</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="allRecordsTable"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ANALYTICS VIEW -->
+        <section id="analyticsView" class="view-section">
+            <div class="main-grid" style="grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));">
+                <div class="panel">
+                    <h2 class="panel-title">Provider Cost Allocation</h2>
+                    <div style="height: 350px;"><canvas id="providerChart"></canvas></div>
+                </div>
+                <div class="panel">
+                    <h2 class="panel-title">Top service Utilization</h2>
+                    <div style="height: 350px;"><canvas id="serviceChart"></canvas></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const API_BASE = "http://127.0.0.1:5001/api";
+        let mainChart, providerChart, serviceChart;
+
+        function formatCurrency(v) { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(v); }
+
+        function showView(id) {
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            document.getElementById('nav-' + id.replace('View', '')).classList.add('active');
+            document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            
+            // Toggle Month Selector
+            const monthSelector = document.getElementById('monthSelectorContainer');
+            if (id === 'dashboardView' || id === 'analyticsView' || id === 'recordsView') {
+                monthSelector.style.display = 'block';
+            } else {
+                monthSelector.style.display = 'none';
+            }
+
+            if (id === 'teamsView') { loadAllTeams(); loadAllCompaniesDropdowns(); }
+            if (id === 'billingView') loadBillingDropdowns();
+            if (id === 'recordsView') loadAllRecords();
+            if (id === 'analyticsView') loadAnalytics(document.getElementById('monthSelector').value);
+            if (id === 'dashboardView') refreshData();
+        }
+
+        async function refreshData() {
+            const icon = document.getElementById('refreshIcon');
+            const month = document.getElementById('monthSelector').value;
+            icon.classList.add('spinning');
+            
+            const query = month !== 'all' ? `?month=${month}` : '?month=all';
+            try {
+                // Also reload months to catch any newly added records
+                await loadMonths();
+                
+                const [companies, teams, alerts, records] = await Promise.all([
+                    fetch(`${API_BASE}/companies${query}`).then(r => r.json()),
+                    fetch(`${API_BASE}/teams-over-budget${query}`).then(r => r.json()),
+                    fetch(`${API_BASE}/alerts${query}`).then(r => r.json()),
+                    fetch(`${API_BASE}/cost-records${query}`).then(r => r.json())
+                ]);
+                renderCompanies(companies);
+                renderTeams(teams);
+                renderAlerts(alerts);
+                renderChart(records);
+                
+                // Also update analytics charts if they exist
+                await loadAnalytics(month);
+                
+                document.getElementById('syncText').innerText = `Synced at ${new Date().toLocaleTimeString()}`;
+            } finally {
+                setTimeout(() => icon.classList.remove('spinning'), 500);
+            }
+        }
+
+        function renderCompanies(data) {
+            document.getElementById('companiesGrid').innerHTML = data.map(c => `
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-label">${c.name}</div>
+                        <div class="trend ${c.trend_direction}">${c.trend_percentage}%</div>
+                    </div>
+                    <div class="stat-value">${formatCurrency(c.total_spend)}</div>
+                </div>
+            `).join('');
+        }
+
+        function renderTeams(data) {
+            document.getElementById('teamsBody').innerHTML = data.map(t => `
+                <tr>
+                    <td><div style="font-weight:600; color:white;">${t.company_name}</div><div style="font-size:0.75rem;">${t.team_name}</div></td>
+                    <td>${formatCurrency(t.monthly_budget)}</td>
+                    <td style="color:var(--accent-danger);">${formatCurrency(t.actual_spend)}</td>
+                    <td style="color:var(--accent-danger);">+${formatCurrency(t.amount_over)}</td>
+                    <td><span class="status-chip chip-danger">Exceeded</span></td>
+                </tr>
+            `).join('');
+        }
+
+        function renderAlerts(alerts) {
+            const list = document.getElementById('alertsList');
+            if (!alerts.length) list.innerHTML = '<p style="color:var(--text-muted); font-size:0.875rem;">No budget breaches detected.</p>';
+            else list.innerHTML = alerts.map(a => `<div style="padding:0.75rem; background:rgba(239, 68, 68, 0.05); border-left:3px solid var(--accent-danger); font-size:0.8125rem;">${a.message}</div>`).join('');
+        }
+
+        function renderChart(data) {
+            const ctx = document.getElementById('costChart').getContext('2d');
+            const labels = [...new Set(data.map(d => d.month))];
+            const companies = [...new Set(data.map(d => d.company_name))];
+            const palette = ['#38bdf8', '#818cf8', '#fb7185', '#34d399'];
+
+            if (mainChart) mainChart.destroy();
+            mainChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: companies.map((c, i) => ({
+                        label: c,
+                        data: labels.map(m => (data.find(d => d.month === m && d.company_name === c) || {amount:0}).amount),
+                        borderColor: palette[i % palette.length],
+                        backgroundColor: palette[i % palette.length] + '20',
+                        fill: true, tension: 0.4
+                    }))
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8' } } }, scales: { y: { grid: { color: 'rgba(255,255,255,0.05)' } }, x: { grid: { display: false } } } }
+            });
+        }
+
+        async function loadAllTeams() {
+            const [teams, comps] = await Promise.all([fetch(`${API_BASE}/all-teams`).then(r => r.json()), fetch(`${API_BASE}/all-companies`).then(r => r.json())]);
+            document.getElementById('allTeamsTable').innerHTML = teams.map(t => `<tr><td>${t.team_name}</td><td>${t.department}</td><td>${t.company_name}</td><td>${formatCurrency(t.monthly_budget)}</td></tr>`).join('');
+            document.getElementById('formTeamCompany').innerHTML = comps.map(c => `<option value="${c.company_id}">${c.company_name}</option>`).join('');
+        }
+
+        document.getElementById('addTeamForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const payload = { company_id: document.getElementById('formTeamCompany').value, team_name: document.getElementById('formTeamName').value, department: document.getElementById('formTeamDept').value, monthly_budget: document.getElementById('formTeamBudget').value };
+            const res = await fetch(`${API_BASE}/add-team`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if (res.ok) { alert('Provisioning Successful.'); loadAllTeams(); e.target.reset(); }
+        };
+
+        async function loadBillingDropdowns() {
+            const [compRes, servRes] = await Promise.all([fetch(`${API_BASE}/all-companies`), fetch(`${API_BASE}/services`)]);
+            const comps = await compRes.json();
+            const servs = await servRes.json();
+            document.getElementById('formBillCompany').innerHTML = '<option value="">Select Portfolio</option>' + comps.map(c => `<option value="${c.company_id}">${c.company_name}</option>`).join('');
+            document.getElementById('formBillService').innerHTML = servs.map(s => `<option value="${s.service_id}">${s.service_name} (${s.provider})</option>`).join('');
+        }
+
+        async function loadTeamsForForm(companyId) {
+            if (!companyId) return;
+            const res = await fetch(`${API_BASE}/all-teams`);
+            const all = await res.json();
+            const name = document.getElementById('formBillCompany').selectedOptions[0].text;
+            document.getElementById('formBillTeam').innerHTML = all.filter(t => t.company_name === name).map(t => `<option value="${t.team_id}">${t.team_name}</option>`).join('');
+        }
+
+        document.getElementById('addBillingForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const payload = { company_id: document.getElementById('formBillCompany').value, team_id: document.getElementById('formBillTeam').value, service_id: document.getElementById('formBillService').value, amount_spent: document.getElementById('formBillAmount').value, usage_hours: document.getElementById('formBillHours').value, billing_month: document.getElementById('formBillMonth').value };
+            const res = await fetch(`${API_BASE}/add-billing`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if (res.ok) { 
+                const msg = document.getElementById('billingSuccessMsg');
+                msg.style.display = 'block';
+                setTimeout(() => msg.style.display = 'none', 3000);
+                e.target.reset(); 
+                loadMonths();
+            }
+        };
+
+        document.getElementById('addCompanyForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const payload = { company_name: document.getElementById('formCompName').value, industry: document.getElementById('formCompIndustry').value, contact_email: document.getElementById('formCompEmail').value };
+            const res = await fetch(`${API_BASE}/companies`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if (res.ok) { 
+                alert('Company Registered Successfully.'); 
+                e.target.reset(); 
+                loadAllCompaniesDropdowns(); 
+            }
+        };
+
+        async function loadAllCompaniesDropdowns() {
+            const res = await fetch(`${API_BASE}/all-companies`);
+            const comps = await res.json();
+            const teamCompSel = document.getElementById('formTeamCompany');
+            if (teamCompSel) teamCompSel.innerHTML = comps.map(c => `<option value="${c.company_id}">${c.company_name}</option>`).join('');
+        }
+
+        async function loadAllRecords() {
+            const res = await fetch(`${API_BASE}/records`);
+            const records = await res.json();
+            document.getElementById('allRecordsTable').innerHTML = records.map(r => `
+                <tr>
+                    <td>${r.company_name}</td>
+                    <td>${r.team_name}</td>
+                    <td>${r.service_name}</td>
+                    <td>${formatCurrency(r.amount_spent)}</td>
+                    <td>${r.usage_hours}h</td>
+                    <td>${new Date(r.billing_month).toLocaleDateString('en-US', {month:'short', year:'numeric'})}</td>
+                    <td><button onclick="deleteRecord(${r.record_id})" style="background:none; border:none; color:var(--accent-danger); cursor:pointer;"><i data-lucide="trash-2"></i></button></td>
+                </tr>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        async function deleteRecord(id) {
+            if (!confirm('Are you sure you want to delete this cost record permanently?')) return;
+            const res = await fetch(`${API_BASE}/cost-records/${id}`, { method: 'DELETE' });
+            if (res.ok) { loadAllRecords(); refreshData(); }
+        }
+
+        async function loadAnalytics(month = 'all') {
+            const query = month !== 'all' ? `?month=${month}` : '?month=all';
+            const res = await fetch(`${API_BASE}/analytics${query}`);
+            const data = await res.json();
+            
+            const pData = data.provider_costs || [];
+            const sData = data.service_usage || [];
+            
+            const pMap = { 
+                'AWS': '#FF9900', 
+                'Google Cloud': '#34A853', 
+                'GCP': '#34A853', 
+                'Microsoft Azure': '#008AD7', 
+                'Azure': '#008AD7' 
+            };
+            
+            if (providerChart) providerChart.destroy();
+            providerChart = new Chart(document.getElementById('providerChart').getContext('2d'), {
+                type: 'doughnut',
+                data: { labels: pData.map(x => x.provider), datasets: [{ data: pData.map(x => x.total_cost), backgroundColor: pData.map(x => pMap[x.provider] || '#334155'), borderWidth: 0 }] },
+                options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8' } } } }
+            });
+
+            if (serviceChart) serviceChart.destroy();
+            serviceChart = new Chart(document.getElementById('serviceChart').getContext('2d'), {
+                type: 'bar',
+                data: { labels: sData.map(x => x.service_name), datasets: [{ label: 'Operational Hours', data: sData.map(x => x.total_hours), backgroundColor: 'rgba(56, 189, 248, 0.4)', borderColor: '#38bdf8', borderWidth: 1 }] },
+                options: { indexAxis: 'y', maintainAspectRatio: false, scales: { x: { grid: { color: 'rgba(255,255,255,0.05)' } } } }
+            });
+        }
+
+        async function loadMonths() {
+            try {
+                const res = await fetch(`${API_BASE}/months`);
+                const months = await res.json();
+                const selector = document.getElementById('monthSelector');
+                const currentValue = selector.value;
+                
+                // Keep 'All Time' and clear others
+                selector.innerHTML = '<option value="all">Global Period (All Time)</option>';
+                
+                months.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m.value; opt.textContent = m.label;
+                    selector.appendChild(opt);
+                });
+                
+                // Restore selection if it still exists
+                if ([...selector.options].some(o => o.value === currentValue)) {
+                    selector.value = currentValue;
+                }
+            } catch (err) {
+                console.error('Error loading months:', err);
+            }
+        }
+
+        lucide.createIcons();
+        loadMonths().then(() => refreshData());
+    </script>
+</body>
+</html>
