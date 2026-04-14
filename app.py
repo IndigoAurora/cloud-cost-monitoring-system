@@ -2,17 +2,21 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 import mysql.connector
 from mysql.connector import errorcode
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
 
 # Database configuration
 db_config = {
-    'user': 'root',
-    'password': 'root@1234',
-    'host': '127.0.0.1',
+    'user': os.getenv('DB_USER', 'root'),
+    'password': os.getenv('DB_PASSWORD', 'root@1234'),
+    'host': os.getenv('DB_HOST', '127.0.0.1'),
 }
-DB_NAME = 'cloud_cost_monitoring'
+DB_NAME = os.getenv('DB_NAME', 'cloud_cost_monitoring')
 
 def get_db_connection(with_db=True):
     config = db_config.copy()
