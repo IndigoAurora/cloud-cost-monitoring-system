@@ -153,10 +153,12 @@ def get_companies():
                 SELECT 
                     c.company_id,
                     c.company_name as name, 
+                    c.industry,
+                    c.contact_email,
                     IFNULL(SUM(cr.amount_spent), 0) as total_spend
                 FROM companies c
                 LEFT JOIN cost_records cr ON c.company_id = cr.company_id
-                GROUP BY c.company_id, c.company_name
+                GROUP BY c.company_id, c.company_name, c.industry, c.contact_email
             """
             cursor.execute(query)
         elif selected_month:
@@ -165,11 +167,13 @@ def get_companies():
                 SELECT 
                     c.company_id,
                     c.company_name as name, 
+                    c.industry,
+                    c.contact_email,
                     IFNULL(SUM(cr.amount_spent), 0) as total_spend
                 FROM companies c
                 LEFT JOIN cost_records cr ON c.company_id = cr.company_id 
-                    AND cr.billing_month = %s
-                GROUP BY c.company_id, c.company_name
+                    AND DATE_FORMAT(cr.billing_month, '%Y-%m') = %s
+                GROUP BY c.company_id, c.company_name, c.industry, c.contact_email
             """
             cursor.execute(query, (selected_month,))
         else:
@@ -178,11 +182,13 @@ def get_companies():
                 SELECT 
                     c.company_id,
                     c.company_name as name, 
+                    c.industry,
+                    c.contact_email,
                     IFNULL(SUM(cr.amount_spent), 0) as total_spend
                 FROM companies c
                 LEFT JOIN cost_records cr ON c.company_id = cr.company_id 
                     AND cr.billing_month = (SELECT MAX(billing_month) FROM cost_records)
-                GROUP BY c.company_id, c.company_name
+                GROUP BY c.company_id, c.company_name, c.industry, c.contact_email
             """
             cursor.execute(query)
         companies = cursor.fetchall()
@@ -209,7 +215,7 @@ def get_companies():
                 query = """
                     SELECT billing_month, SUM(amount_spent) as monthly_total
                     FROM cost_records
-                    WHERE company_id = %s AND billing_month <= %s
+                    WHERE company_id = %s AND DATE_FORMAT(billing_month, '%Y-%m') <= %s
                     GROUP BY billing_month
                     ORDER BY billing_month DESC
                     LIMIT 2
@@ -259,7 +265,10 @@ def get_cost_records():
         """
         
         if selected_month and selected_month != 'all':
-            query += " WHERE cr.billing_month <= %s "
+            # Rule 1: Show full preceding history up to selected month
+            query += """
+                WHERE DATE_FORMAT(cr.billing_month, '%Y-%m') <= %s
+            """
             query += " GROUP BY c.company_name, cr.billing_month ORDER BY cr.billing_month ASC "
             cursor.execute(query, (selected_month,))
         else:
@@ -308,7 +317,7 @@ def get_alerts():
                 FROM teams t
                 JOIN cost_records cr ON t.team_id = cr.team_id
                 JOIN companies comp ON t.company_id = comp.company_id
-                WHERE cr.billing_month = %s
+                WHERE DATE_FORMAT(cr.billing_month, '%Y-%m') = %s
                 GROUP BY t.team_id, t.team_name, comp.company_name, t.monthly_budget
                 HAVING SUM(cr.amount_spent) > t.monthly_budget
             """
@@ -380,7 +389,7 @@ def get_teams_over_budget():
                 FROM teams t
                 JOIN cost_records c ON t.team_id = c.team_id
                 JOIN companies comp ON t.company_id = comp.company_id
-                WHERE c.billing_month = %s
+                WHERE DATE_FORMAT(c.billing_month, '%Y-%m') = %s
                 GROUP BY t.team_id, t.team_name, comp.company_name, t.monthly_budget
                 HAVING SUM(c.amount_spent) > t.monthly_budget
             """
@@ -524,7 +533,7 @@ def get_analytics():
         """
         p_params = []
         if selected_month and selected_month != 'all':
-            p_query += " WHERE cr.billing_month = %s"
+            p_query += " WHERE DATE_FORMAT(cr.billing_month, '%Y-%m') = %s"
             p_params.append(selected_month)
         p_query += " GROUP BY s.provider"
         cursor.execute(p_query, p_params)
@@ -538,7 +547,7 @@ def get_analytics():
         """
         s_params = []
         if selected_month and selected_month != 'all':
-            s_query += " WHERE cr.billing_month = %s"
+            s_query += " WHERE DATE_FORMAT(cr.billing_month, '%Y-%m') = %s"
             s_params.append(selected_month)
         s_query += " GROUP BY s.service_name ORDER BY total_hours DESC LIMIT 5"
         cursor.execute(s_query, s_params)
@@ -559,9 +568,13 @@ def get_all_records():
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
+        # Get month from query param
+        selected_month = request.args.get('month')
+        
         query = """
             SELECT 
                 cr.record_id, 
+                cr.team_id,
                 c.company_name, 
                 t.team_name, 
                 s.service_name, 
@@ -572,9 +585,15 @@ def get_all_records():
             JOIN companies c ON cr.company_id = c.company_id
             JOIN teams t ON cr.team_id = t.team_id
             JOIN cloud_services s ON cr.service_id = s.service_id
-            ORDER BY cr.billing_month DESC
         """
-        cursor.execute(query)
+        
+        if selected_month and selected_month != 'all':
+            query += " WHERE DATE_FORMAT(cr.billing_month, '%Y-%m') = %s "
+            query += " ORDER BY cr.billing_month DESC "
+            cursor.execute(query, (selected_month,))
+        else:
+            query += " ORDER BY cr.billing_month DESC "
+            cursor.execute(query)
         data = cursor.fetchall()
         cursor.close()
         conn.close()
