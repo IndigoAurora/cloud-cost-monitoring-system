@@ -28,3 +28,9 @@ A full stack cloud cost monitoring system built as a DBMS semester project.
 - Billing - Log monthly expense records
 - Records - View and delete all cost records
 - Analytics - Provider cost and service utilization charts
+
+## 🚀 Latest Updates (April 19, 2026)
+- **Native SQL Filtering:** Migrated month-filtering logic from client-side JavaScript to backend MySQL queries for better performance and data integrity.
+- **Dynamic Portfolio Tracking:** Implemented a unified state where the Dashboard, Portfolio, and Analytics all stay synchronized via a single month-dropdown.
+- **Historical Trend Intelligence:** The Cost Distribution graph now dynamically renders cumulative history leading up to the selected month.
+- **Null-Safe UI:** Added protection for companies with zero monthly spend (like `dbms.ltd`) to prevent UI crashes.
