@@ -417,6 +417,167 @@ def get_teams_over_budget():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/waste-alerts', methods=['GET'])
+def get_waste_alerts():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        selected_month = request.args.get('month')
+        
+        query = """
+            SELECT 
+                c.company_name, 
+                s.service_name, 
+                SUM(cr.amount_spent) as total_spend, 
+                SUM(cr.usage_hours) as total_usage
+            FROM cost_records cr
+            JOIN companies c ON cr.company_id = c.company_id
+            JOIN cloud_services s ON cr.service_id = s.service_id
+        """
+        params = []
+        if selected_month and selected_month != 'all':
+            query += " WHERE DATE_FORMAT(cr.billing_month, '%Y-%m') = %s"
+            params.append(selected_month)
+        
+        query += " GROUP BY c.company_id, s.service_id"
+        query += " HAVING (SUM(cr.amount_spent) / NULLIF(SUM(cr.usage_hours), 0)) > 10 OR (SUM(cr.amount_spent) > 0 AND SUM(cr.usage_hours) = 0)"
+        
+        cursor.execute(query, params)
+        waste_data = cursor.fetchall()
+        
+        alerts = []
+        for w in waste_data:
+            spend = float(w['total_spend'])
+            usage = int(w['total_usage'])
+            alerts.append({
+                "type": "waste",
+                "message": f"{w['company_name']} is underutilizing {w['service_name']} — {usage} hours usage but ${spend:,.0f} spend. Consider downsizing."
+            })
+            
+        cursor.close()
+        conn.close()
+        return jsonify(alerts)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/remediation', methods=['GET'])
+def get_remediation():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        selected_month = request.args.get('month')
+        
+        # 1. Look for teams over budget
+        query_teams = """
+            SELECT t.team_name, comp.company_name, s.service_name, t.monthly_budget
+            FROM teams t
+            JOIN cost_records cr ON t.team_id = cr.team_id
+            JOIN companies comp ON t.company_id = comp.company_id
+            JOIN cloud_services s ON cr.service_id = s.service_id
+        """
+        params = []
+        if selected_month and selected_month != 'all':
+            query_teams += " WHERE DATE_FORMAT(cr.billing_month, '%Y-%m') = %s"
+            params.append(selected_month)
+        
+        query_teams += " GROUP BY t.team_id, t.team_name, comp.company_name, s.service_name, t.monthly_budget HAVING SUM(cr.amount_spent) > t.monthly_budget"
+        cursor.execute(query_teams, params)
+        breaches = cursor.fetchall()
+        
+        # 2. Look for waste alerts
+        query_waste = """
+            SELECT c.company_name, s.service_name
+            FROM cost_records cr
+            JOIN companies c ON cr.company_id = c.company_id
+            JOIN cloud_services s ON cr.service_id = s.service_id
+        """
+        params_w = []
+        if selected_month and selected_month != 'all':
+            query_waste += " WHERE DATE_FORMAT(cr.billing_month, '%Y-%m') = %s"
+            params_w.append(selected_month)
+        
+        query_waste += " GROUP BY c.company_id, s.service_id"
+        query_waste += " HAVING (SUM(cr.amount_spent) / NULLIF(SUM(cr.usage_hours), 0)) > 10 OR (SUM(cr.amount_spent) > 0 AND SUM(cr.usage_hours) = 0)"
+        cursor.execute(query_waste, params_w)
+        wastage = cursor.fetchall()
+        
+        suggestions = []
+        # Generate breach suggestions
+        for b in breaches:
+            suggestions.append({
+                "message": f"Rightsize {b['service_name']} instances for {b['team_name']}",
+                "target": b['company_name']
+            })
+            
+        # Generate waste suggestions
+        for w in wastage:
+            suggestions.append({
+                "message": f"Enable auto-stop for {w['company_name']} {w['service_name']}",
+                "target": w['company_name']
+            })
+            
+        cursor.close()
+        conn.close()
+        return jsonify(suggestions)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/causal-alerts', methods=['GET'])
+def get_causal_alerts():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        selected_month = request.args.get('month')
+        
+        # Aggregate by team, service, month
+        query = """
+            SELECT 
+                t.team_name, 
+                s.service_name, 
+                cr.billing_month,
+                SUM(cr.amount_spent) as monthly_spend,
+                SUM(cr.usage_hours) as monthly_usage
+            FROM cost_records cr
+            JOIN teams t ON cr.team_id = t.team_id
+            JOIN cloud_services s ON cr.service_id = s.service_id
+            GROUP BY t.team_id, s.service_id, cr.billing_month
+            ORDER BY t.team_id, s.service_id, cr.billing_month
+        """
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        
+        causal_alerts = []
+        for i in range(1, len(rows)):
+            curr = rows[i]
+            prev = rows[i-1]
+            
+            if curr['team_name'] == prev['team_name'] and curr['service_name'] == prev['service_name']:
+                p_spend = float(prev['monthly_spend'])
+                c_spend = float(curr['monthly_spend'])
+                
+                if p_spend > 0:
+                    spike_perc = ((c_spend - p_spend) / p_spend) * 100
+                    if spike_perc > 20:
+                        month_label = curr['billing_month'].strftime('%B %Y')
+                        
+                        if selected_month and selected_month != 'all':
+                            if curr['billing_month'].strftime('%Y-%m') != selected_month:
+                                continue
+                                
+                        p_usage = int(prev['monthly_usage'])
+                        c_usage = int(curr['monthly_usage'])
+                        
+                        causal_alerts.append({
+                            "type": "causal",
+                            "message": f"{curr['service_name']} costs for {curr['team_name']} spiked {spike_perc:.0f}% — likely due to increased usage hours from {p_usage} to {c_usage} in {month_label}."
+                        })
+        
+        cursor.close()
+        conn.close()
+        return jsonify(causal_alerts)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/api/months', methods=['GET'])
 def get_months():
     try:
