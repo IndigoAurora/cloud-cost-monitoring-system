@@ -411,6 +411,63 @@
                 transform: rotate(360deg);
             }
         }
+
+        /* Remediation styles */
+        .remediation-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .remediation-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            padding: 1.25rem;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+
+        .remediation-card p {
+            font-size: 0.875rem;
+            color: var(--text-primary);
+            line-height: 1.4;
+        }
+
+        .remediation-card .target {
+            font-size: 0.75rem;
+            color: var(--accent-primary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .btn-apply {
+            background: var(--accent-success);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            align-self: flex-start;
+        }
+
+        .btn-apply:hover {
+            filter: brightness(1.1);
+        }
+
+        .btn-apply.applied {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
     </style>
 </head>
 
@@ -472,6 +529,16 @@
                         <i data-lucide="zap" style="color: var(--accent-warning);"></i>
                     </div>
                     <div id="alertsList" style="display: flex; flex-direction: column; gap: 0.75rem;"></div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <h2 class="panel-title">Remediation Suggestions</h2>
+                    <i data-lucide="wrench" style="color: var(--accent-success);"></i>
+                </div>
+                <div id="remediationGrid" class="remediation-grid">
+                    <!-- Dynamic Content -->
                 </div>
             </div>
             <div class="panel">
@@ -723,15 +790,24 @@
             const month = getSelectedMonth();
             const query = `?month=${month}`;
             try {
-                const [companies, teams, alerts, records] = await Promise.all([
+                const [companies, teams, budgetAlerts, wasteAlerts, remediation, causalAlerts, records] = await Promise.all([
                     fetchJSON(`${API_BASE}/companies${query}`),
                     fetchJSON(`${API_BASE}/teams-over-budget${query}`),
                     fetchJSON(`${API_BASE}/alerts${query}`),
+                    fetchJSON(`${API_BASE}/waste-alerts${query}`),
+                    fetchJSON(`${API_BASE}/remediation${query}`),
+                    fetchJSON(`${API_BASE}/causal-alerts${query}`),
                     fetchJSON(`${API_BASE}/cost-records${query}`)
                 ]);
+
+                // Normalize budget alerts to have a 'breach' type
+                const budgetWithTypes = budgetAlerts.map(a => ({ ...a, type: 'breach' }));
+                const allAlerts = [...budgetWithTypes, ...wasteAlerts, ...causalAlerts];
+
                 renderCompanies(companies);
                 renderTeams(teams);
-                renderAlerts(alerts);
+                renderAlerts(allAlerts);
+                renderRemediation(remediation);
                 renderChart(records);
             } catch (e) { console.error("Dashboard Load Error:", e); }
         }
@@ -764,8 +840,52 @@
 
         function renderAlerts(alerts) {
             const list = document.getElementById('alertsList');
-            if (!alerts.length) list.innerHTML = '<p style="color:var(--text-muted); font-size:0.875rem;">No budget breaches detected.</p>';
-            else list.innerHTML = alerts.map(a => `<div style="padding:0.75rem; background:rgba(239, 68, 68, 0.05); border-left:3px solid var(--accent-danger); font-size:0.8125rem;">${a.message}</div>`).join('');
+            if (!alerts.length) {
+                list.innerHTML = '<p style="color:var(--text-muted); font-size:0.875rem;">No intelligence alerts detected.</p>';
+            } else {
+                list.innerHTML = alerts.map(a => {
+                    let bgColor, borderColor;
+                    if (a.type === 'waste') {
+                        bgColor = 'rgba(251, 191, 36, 0.1)';
+                        borderColor = '#fbbf24';
+                    } else if (a.type === 'causal') {
+                        bgColor = 'rgba(129, 140, 248, 0.1)';
+                        borderColor = '#818cf8';
+                    } else {
+                        bgColor = 'rgba(239, 68, 68, 0.05)';
+                        borderColor = 'var(--accent-danger)';
+                    }
+                    return `
+                        <div style="padding:0.75rem; background:${bgColor}; border-left:3px solid ${borderColor}; font-size:0.8125rem; margin-bottom:0.5rem; color:white;">
+                            ${a.message}
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        function renderRemediation(suggestions) {
+            const grid = document.getElementById('remediationGrid');
+            if (!suggestions.length) {
+                grid.innerHTML = '<p style="color:var(--text-muted); font-size:0.875rem;">No remediation suggestions available at this time.</p>';
+                return;
+            }
+
+            grid.innerHTML = suggestions.map((s, idx) => `
+                <div class="remediation-card">
+                    <div>
+                        <div class="target">${s.target}</div>
+                        <p>${s.message}</p>
+                    </div>
+                    <button class="btn-apply" onclick="applyRemediation(this, ${idx})">Apply Fix</button>
+                </div>
+            `).join('');
+        }
+
+        function applyRemediation(btn, id) {
+            btn.innerHTML = '✓ Acknowledged';
+            btn.classList.add('applied');
+            btn.disabled = true;
         }
 
         function renderChart(data) {

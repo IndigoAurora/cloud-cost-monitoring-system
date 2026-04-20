@@ -1,0 +1,327 @@
+================================================================
+CLOUD COST MONITORING SYSTEM — PROJECT EXPLAINED
+By Data Wizards: Akshay Goel & Anshul Kumar | Section 4B | IILM University
+================================================================
+
+Hey Akshay and Anshul. This file explains exactly what our project does,
+in plain simple language. No jargon. No confusion. Just the truth.
+
+----------------------------------------------------------------
+WHAT IS THIS PROJECT, IN ONE LINE?
+----------------------------------------------------------------
+
+It's a website that helps companies track how much money they are
+spending on cloud services (like AWS, Google Cloud, Azure), and it
+automatically detects problems, explains why they happened, and
+suggests fixes.
+
+Think of it like a smart accountant who watches your cloud bills
+24/7 and shouts at you when something goes wrong.
+
+----------------------------------------------------------------
+WHAT IS "THE CLOUD" ANYWAY?
+----------------------------------------------------------------
+
+When companies need computers, servers, or storage, they don't
+always buy physical machines. Instead they rent them from big
+companies like Amazon (AWS), Google (Google Cloud), or Microsoft
+(Azure). This is called "the cloud."
+
+These companies pay monthly bills based on how much they use.
+Our project helps monitor and manage those bills.
+
+----------------------------------------------------------------
+WHO ARE THE COMPANIES IN OUR DATABASE?
+----------------------------------------------------------------
+
+We have 4 real sample companies in our system:
+
+1. TechCorp India — a Technology company
+2. Zomato Ltd — a Food Delivery company
+3. Paytm Services — a Fintech company
+4. Byju's Learning — an EdTech company
+
+Each company has teams inside it, and each team has a monthly
+budget for cloud spending.
+
+----------------------------------------------------------------
+WHAT DOES THE WEBSITE ACTUALLY LOOK LIKE?
+----------------------------------------------------------------
+
+The website has a dark themed dashboard with a sidebar on the left.
+The sidebar has these pages:
+
+1. Dashboard
+2. Portfolio
+3. Teams
+4. Billing
+5. Records
+6. Analytics
+
+Let's explain each one.
+
+----------------------------------------------------------------
+PAGE 1: DASHBOARD
+----------------------------------------------------------------
+
+This is the main page. When you open the website, this is what
+you see first.
+
+TOP TILES:
+There are cards at the top showing each company's name and how
+much total money they have spent. For example:
+- TechCorp India: $18,100
+- Zomato Ltd: $33,450
+- Paytm Services: $26,500
+- Byju's Learning: $5,300
+
+You can also filter by month using the dropdown at the top right.
+Select "January 2026" and all the numbers update to show only
+January's spending. Select "Global Period (All Time)" to see
+the total across all months.
+
+COST DISTRIBUTION GRAPH:
+Below the tiles is a smooth line graph showing how each company's
+spending changed over time — from January 2026 to April 2026.
+Each company has its own colored line. You can see who is spending
+more, who is spending less, and how spending changed month by month.
+
+INTELLIGENCE ALERTS (the panel on the right):
+This is the smartest part of the dashboard. It automatically shows
+three types of alerts, each in a different color:
+
+RED ALERTS — Budget Breaches:
+If a team has spent more than their monthly budget, a red alert
+appears. Example:
+"TechCorp India — Backend Team has exceeded monthly budget of
+$5,000 with actual spend of $14,200"
+This means Backend Team was given $5,000 to spend but spent $14,200.
+That is a problem.
+
+YELLOW ALERTS — Waste Detection:
+If a company is paying a lot of money for a cloud service but
+barely using it, a yellow warning appears. Example:
+"Zomato Ltd is underutilizing Azure SQL — 854 hours usage but
+$8,650 spend. Consider downsizing."
+This means Zomato is paying $8,650 for Azure SQL but only using
+it for 854 hours. They are wasting money on something they barely use.
+
+BLUE ALERTS — Causal AI (Why did costs spike?):
+If a team's spending suddenly jumped up compared to the previous
+month, a blue alert explains WHY. Example:
+"Cloud Storage costs for Content Team spiked 22% — likely due to
+increased usage hours from 150 to 180 in March 2026."
+This means the system automatically noticed the spike and explained
+the reason using real data from the database. No human typed this —
+the system figured it out on its own.
+
+REMEDIATION SUGGESTIONS (below Intelligence Alerts):
+This section shows actionable fix suggestions as cards. Example:
+"Rightsize EC2 Compute instances for Backend Team"
+"Enable auto-stop for Zomato Ltd Azure SQL"
+
+Each card has an "Apply Fix" button. When someone clicks it,
+the button turns grey and says "Acknowledged" — meaning a human
+has seen the suggestion and noted it.
+
+In a real production system, clicking Apply Fix would trigger
+actual changes like sending an alert to the DevOps team, creating
+a ticket, or calling the cloud provider's API to resize the server.
+For this project, it simulates the acknowledgement step, which is
+the first step in any remediation workflow.
+
+RESOURCE GOVERNANCE TABLE (at the bottom of Dashboard):
+A detailed table showing every team, their budget, their actual
+spend, the difference (called drift), and a status badge.
+If a team exceeded their budget, the status says EXCEEDED in red.
+
+----------------------------------------------------------------
+PAGE 2: PORTFOLIO
+----------------------------------------------------------------
+
+This page shows a high level overview of all companies in the system.
+
+COMPANY CARDS:
+Each company gets a card showing:
+- Company name and industry
+- Contact email
+- Total amount invested (spent)
+- Number of active teams
+- Status badge: AT RISK (if any team exceeded 80% of budget)
+  or HEALTHY (if all teams are within budget)
+
+PORTFOLIO INVENTORY TABLE:
+Below the cards is a sortable table with all companies listed.
+You can click "Total Spend" to sort companies from highest
+spender to lowest, or lowest to highest. A small arrow shows
+which direction the table is sorted.
+
+----------------------------------------------------------------
+PAGE 3: TEAMS
+----------------------------------------------------------------
+
+This page has two things:
+
+REGISTER NEW COMPANY form:
+You can add a brand new company to the system by typing the
+company name, industry, and contact email. It gets saved directly
+into the MySQL database and immediately shows up everywhere
+on the dashboard.
+
+REGISTER NEW TEAM form:
+You can add a new team under any company. You pick the company
+from a dropdown, give the team a name, department, and monthly
+budget. It gets saved to the database.
+
+TEAM INVENTORY TABLE:
+Shows all registered teams with their company, department,
+and monthly budget.
+
+----------------------------------------------------------------
+PAGE 4: BILLING
+----------------------------------------------------------------
+
+This is where you log a new expense record.
+
+You select a company, a team, a cloud service, and enter how
+much was spent, how many hours were used, and which month the
+bill is for. When you submit, it gets saved to the cost_records
+table in MySQL.
+
+This is how new spending data enters the system.
+
+----------------------------------------------------------------
+PAGE 5: RECORDS
+----------------------------------------------------------------
+
+This page shows every single expense record that exists in the
+database. It's like a full ledger — a complete history of every
+bill ever logged.
+
+Each row shows the company, team, service, amount spent, usage
+hours, and billing month.
+
+There is also a Delete button on each row. If you made a mistake
+while logging an expense, you can delete it from here and it
+removes it from the database permanently.
+
+----------------------------------------------------------------
+PAGE 6: ANALYTICS
+----------------------------------------------------------------
+
+This page has two charts that give a visual breakdown of cloud
+spending by provider and by service.
+
+PROVIDER COST DONUT CHART:
+A circular chart showing how much total money was spent on each
+cloud provider — AWS vs Google Cloud vs Microsoft Azure.
+The bigger the slice, the more was spent on that provider.
+
+SERVICE UTILIZATION BAR CHART:
+A bar chart showing spending broken down by individual cloud
+service — EC2 Compute, Cloud Storage, Azure SQL, Lambda Functions,
+BigQuery. You can see which specific services are costing the most.
+
+Both charts respond to the month filter at the top. Select a
+specific month and both charts update to show only that month's data.
+
+----------------------------------------------------------------
+HOW DOES THE TECHNICAL SIDE WORK?
+----------------------------------------------------------------
+
+Our project has three layers:
+
+LAYER 1 — THE DATABASE (MySQL):
+We have a database called "cloud_cost_monitoring" with 5 tables:
+- companies: stores company info
+- cloud_services: stores service names and providers
+- teams: stores team info and monthly budgets
+- cost_records: stores every expense ever logged
+- alerts: stores budget breach alerts
+
+LAYER 2 — THE BACKEND (Python Flask):
+A Python program called app.py runs on port 5001.
+It connects to MySQL and provides data through API endpoints.
+These are like doors — the frontend knocks on a door and
+gets data back. Our API doors include:
+- /api/companies — gives company spending data
+- /api/alerts — gives budget breach alerts
+- /api/waste-alerts — gives idle/waste detection alerts
+- /api/causal-alerts — gives causal AI spike explanations
+- /api/remediation — gives fix suggestions
+- /api/analytics — gives chart data
+- /api/teams, /api/records, /api/months — other data
+
+LAYER 3 — THE FRONTEND (HTML):
+A single file called cloud_dashboard.html is the entire website.
+It fetches data from the Flask API and displays it beautifully
+using charts, tables, cards, and alerts.
+
+To run the project:
+1. Open Terminal
+2. Type: cd ~/dbms_26
+3. Type: source venv/bin/activate
+4. Type: python app.py
+5. Open cloud_dashboard.html in your browser
+
+----------------------------------------------------------------
+WHAT MAKES OUR PROJECT SPECIAL (THE 4 SMART FEATURES)?
+----------------------------------------------------------------
+
+Our teacher asked us to add 4 advanced features. Here is what
+each one does and why it is impressive:
+
+FEATURE 1 — PORTFOLIO PAGE:
+A dedicated company overview page with status cards and a
+sortable table. Shows which companies are "At Risk" vs "Healthy"
+based on their teams' budget performance.
+
+FEATURE 2 — IDLE/WASTE DETECTION:
+The system automatically calculates a spending efficiency ratio
+(amount spent divided by usage hours). If a company is spending
+more than $10 per hour on a service, it flags it as wasteful and
+shows a yellow warning in the Intelligence Alerts panel.
+No human has to do this calculation — the database does it
+automatically every time the page loads.
+
+FEATURE 3 — AUTO REMEDIATION:
+When budget breaches or waste is detected, the system doesn't
+just complain — it suggests specific fixes. "Rightsize this
+server." "Enable auto-stop for this service." Each suggestion
+appears as a card with an Apply Fix button that can be
+acknowledged by the team.
+
+FEATURE 4 — CAUSAL AI:
+This is the most impressive feature. The system compares each
+team's spending month over month. If spending jumped by more
+than 20%, it automatically writes a human-readable explanation
+of why the spike happened, using real numbers from the database.
+This is what real enterprise AI monitoring tools do — they don't
+just detect problems, they explain them.
+
+----------------------------------------------------------------
+IN SUMMARY
+----------------------------------------------------------------
+
+This is a full stack web application that:
+- Stores cloud cost data in a real MySQL database
+- Has a Python backend serving 12+ API endpoints
+- Has a beautiful dark themed frontend dashboard
+- Monitors company spending in real time
+- Detects budget breaches automatically
+- Detects idle/waste automatically
+- Explains cost spikes using AI-style analysis
+- Suggests actionable fixes with one click acknowledgement
+- Lets you register new companies, teams, and expenses
+- Filters all data by month
+- Visualizes data with line charts, donut charts, and bar charts
+
+Built by: Akshay Goel & Anshul Kumar
+Group: Data Wizards
+Section: 4B
+University: IILM University
+Subject: Database Management Systems
+
+================================================================
+END OF DOCUMENT
+================================================================
